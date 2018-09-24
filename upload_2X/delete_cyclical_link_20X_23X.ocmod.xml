@@ -1,0 +1,63 @@
+<modification>
+   <name><![CDATA[<font color="#0000"><b>Delete Cyclical Link</font>]]></name>
+   <code>delete_cyclical_link</code>
+    <version><![CDATA[<b>1.0</b>]]></version>
+    <author><![CDATA[<font color="#CC0000"><b>web-systems.solutions</font>]]></author>
+    <link><![CDATA[https://github.com/WebSystemsSolutions]]></link>
+
+<file path="system/library/response.php">
+        <operation>
+            <search position="replace"><![CDATA[public function output() {]]></search>
+            <add><![CDATA[	
+
+            private function ws_delete_circular_reference($output) {
+                return preg_replace_callback('/(\<a.*?href.*?=.*?("|\'))(.*?)(\2.*?>)/s', "self::ws_checkUrl", $output);
+            }
+
+            private function ws_checkUrl($match) {
+
+                if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') {
+                    $protocol = 'https://';
+                } else {
+                    $protocol = 'http://';
+                }
+
+                $full_url = $protocol.$_SERVER['SERVER_NAME'].$_SERVER['REQUEST_URI'];
+
+                if ($full_url{strlen($full_url)-1}=='/') {
+                    $full_url = substr($full_url, 0,strlen($full_url)-1);
+                }
+
+                $url = $_SERVER['REQUEST_URI'];
+
+                if ($url{strlen($url)-1}=='/') {
+                    $url = substr($url, 0,strlen($url)-1);
+                }
+
+                if (preg_match('/^'.preg_quote($full_url,'/').'\/?$/', $match[3])||preg_match('/^'.preg_quote($url,'/').'\/?$/', $match[3])) {
+                    return $match[1].$match[3].$match[2].' rel='.$match[2].'nofollow'.$match[4];
+                } else {
+
+                    $parse_url = parse_url($match[3]);
+
+                    if(isset($parse_url['host']) and ($parse_url['host'] != $_SERVER['SERVER_NAME']) ){
+                        return $match[1].$match[3].$match[2].' rel='.$match[2].'nofollow noopener'.$match[4];
+                    } else {
+                        return $match[0];
+                    }
+                }
+            }
+
+            public function output() {
+            
+	  ]]></add>
+        </operation>
+        <operation>
+            <search position="replace"><![CDATA[echo $output;]]></search>
+            <add><![CDATA[
+                echo $this->ws_delete_circular_reference($output);
+                ]]></add>
+        </operation>
+</file>
+</modification>
+
